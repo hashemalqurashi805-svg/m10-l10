@@ -1,19 +1,39 @@
 import { useState } from "react";
-
-// TODO: import { KGResponse } from "../lib/types".
+import { KGRequest, KGResponse } from "../lib/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function KgPage() {
   const [question, setQuestion] = useState("");
-  // TODO: track result + error state.
+  const [result, setResult] = useState<KGResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [supportedPatterns, setSupportedPatterns] = useState<string[]>([]);
 
   async function submit() {
-    // TODO:
-    // 1. POST to `${API_URL}/kg/query` with JSON body { question }.
-    // 2. Handle 422 (unsupported question) — surface the supported_patterns
-    //    list to the user from the response detail.
-    // 3. Render the cypher and table of rows.
+    setError(null);
+    setResult(null);
+    setSupportedPatterns([]);
+
+    try {
+      const response = await fetch(`${API_URL}/kg/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question } as KGRequest),
+      });
+
+      const data = await response.json();
+
+      if (response.status === 422) {
+        setError("Unsupported question format.");
+        setSupportedPatterns(data.detail.supported_patterns || []);
+      } else if (!response.ok) {
+        setError("An error occurred while querying the knowledge graph.");
+      } else {
+        setResult(data as KGResponse);
+      }
+    } catch (err) {
+      setError("Failed to connect to the server.");
+    }
   }
 
   return (
@@ -25,8 +45,36 @@ export default function KgPage() {
         placeholder="e.g. Find Sichuan recipes"
       />
       <button onClick={submit} disabled={!question}>Ask</button>
-      {/* TODO: render cypher in a <pre>, rows in a <table> with each
-                row having `data-testid="kg-row"`. */}
+
+      {error && (
+        <section style={{ color: "red" }}>
+          <p>{error}</p>
+          {supportedPatterns.length > 0 && (
+            <ul>
+              {supportedPatterns.map((p, i) => <li key={i}>{p}</li>)}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {result && (
+        <section>
+          <h3>Cypher Query:</h3>
+          <pre>{result.cypher}</pre>
+          <h3>Results:</h3>
+          <table border={1}>
+            <tbody>
+              {result.rows.map((row, i) => (
+                <tr key={i} data-testid="kg-row">
+                  {Object.values(row).map((val: any, j) => (
+                    <td key={j}>{JSON.stringify(val)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
     </main>
   );
 }

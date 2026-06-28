@@ -5,109 +5,65 @@ interfaces in `web/lib/types.ts` exactly — drift produces silent render
 failures in the Next.js frontend.
 """
 from typing import List, Literal
-
 from pydantic import BaseModel, Field
-
 
 # --- /extract --------------------------------------------------------
 
 class ExtractRequest(BaseModel):
-    """Request body for POST /extract.
-
-    The request field has a length constraint that gates 422 on empty
-    or oversized input.
-    """
-    # TODO: declare the request body field with a Field(...) length
-    #       constraint.
-    pass
-
+    """Request body for POST /extract."""
+    text: str = Field(..., min_length=1, max_length=5000)
 
 class Entity(BaseModel):
-    """A single named-entity span.
-
-    Field names must match the corresponding TypeScript Entity
-    interface in `web/lib/types.ts` exactly.
-    """
-    # TODO: declare the span's text, label, and start/end character
-    #       offsets.
-    pass
-
+    """A single named-entity span."""
+    text: str
+    label: str
+    start: int
+    end: int
 
 class ExtractResponse(BaseModel):
-    """Response body for POST /extract.
-
-    Per the Evaluation Methodology, the returned list is ordered by
-    start offset ascending.
-    """
-    # TODO: declare the field that carries the ordered list of entities.
-    pass
-
+    """Response body for POST /extract."""
+    entities: List[Entity]
 
 # --- /kg/query -------------------------------------------------------
 
 class KGRequest(BaseModel):
-    """Request body for POST /kg/query.
-
-    The question field has a length constraint.
-    """
-    # TODO: declare the request field with a Field(...) length
-    #       constraint.
-    pass
-
+    """Request body for POST /kg/query."""
+    question: str = Field(..., min_length=1, max_length=500)
 
 class KGResponse(BaseModel):
     """Response body for POST /kg/query."""
-    # TODO: declare the cypher string, the rows the driver returned,
-    #       and the row count.
-    pass
-
+    cypher: str
+    rows: List[dict]
+    count: int
 
 class UnsupportedQueryDetail(BaseModel):
     """Structured detail returned on 422 from /kg/query."""
     reason: Literal["unsupported_question"]
     supported_patterns: List[str]
 
-
 # --- /rag/answer -----------------------------------------------------
 
 class RAGRequest(BaseModel):
-    """Request body for POST /rag/answer.
-
-    The question field has a length constraint; `k` is a bounded
-    integer with a default.
-    """
-    # TODO: declare the question field with a Field(...) length
-    #       constraint and a bounded integer `k` with a default.
-    pass
-
+    """Request body for POST /rag/answer."""
+    question: str = Field(..., min_length=1, max_length=500)
+    k: int = Field(default=4, ge=1, le=10)
 
 class Citation(BaseModel):
-    """One citation: chunk id and retrieval score.
-
-    Field names must match the TypeScript Citation interface.
-    """
-    # TODO: declare the citation's chunk identifier and retrieval score.
-    pass
-
+    """One citation: chunk id and retrieval score."""
+    chunk_id: int
+    score: float
 
 class RAGResponse(BaseModel):
-    """Response body for POST /rag/answer.
-
-    Grounding contract: when `answer` is not the empty-retrieval
-    sentinel, `len(citations) > 0` is required.
-    """
-    # TODO: declare the answer string, the list of citations, and the
-    #       confidence score.
-    pass
-
+    """Response body for POST /rag/answer."""
+    answer: str
+    citations: List[Citation]
+    confidence: float
 
 # --- Health / readiness ---------------------------------------------
 
 class HealthResponse(BaseModel):
     """Liveness response."""
-    # TODO: declare the single field returned by /healthz.
-    pass
-
+    status: str = "ok"
 
 class ReadyDetail(BaseModel):
     """Readiness detail naming each backend's status."""

@@ -1,11 +1,23 @@
-# Lab 10 — frontend Dockerfile. Author this file.
-#
-# TODO: use a multi-stage build to keep the final image small.
-# TODO: stage 1 (named `builder`) installs dependencies and builds the
-#       Next.js app.
-# TODO: stage 2 (named `runner`) copies only the built artifacts and
-#       the files needed at runtime from the builder stage.
-# TODO: expose the Next.js port and start the production server.
-#
-# See lab-guide.md "Containerization" section for the constraints the
-# autograder will check.
+# المرحلة الأولى: البناء (builder)
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+# إضافة أمر لإنشاء المجلد إذا لم يكن موجوداً
+RUN mkdir -p public
+RUN npm run build
+
+# المرحلة الثانية: التشغيل (runner)
+FROM node:18-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+# الآن لن يظهر خطأ لأن المجلد موجود حتماً
+COPY --from=builder /app/public ./public
+
+EXPOSE 3000
+CMD ["npm", "start"]
