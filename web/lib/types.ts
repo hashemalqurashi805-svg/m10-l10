@@ -1,17 +1,50 @@
 // TypeScript interfaces — must mirror api/models.py exactly.
-//
-// Field name drift between these interfaces and the Pydantic shapes is
-// silent: the page renders nothing because the destructure fails.
-// Use snake_case here for any field that is snake_case in the Pydantic
-// model — do not camelCase.
 
-// TODO: declare the Entity interface with the fields used by /extract.
+// Entities extracted from the NLP processing
+export interface Entity {
+  text: string;
+  label: string;
+  start: number;
+  end: number;
+}
 
-// TODO: declare the ExtractResponse interface returned by /extract.
+// Request to /extract
+export interface ExtractRequest {
+  text: string;
+}
 
-// TODO: declare the KGResponse interface returned by /kg/query.
+// Response from /extract
+export interface ExtractResponse {
+  entities: Entity[];
+}
 
-// TODO: declare the Citation interface used inside /rag/answer.
+// Request to /kg/query
+export interface KGRequest {
+  question: string;
+}
 
-// TODO: declare the RAGResponse interface returned by /rag/answer.
-export {};
+// Response from /kg/query
+export interface KGResponse {
+  cypher: string;
+  rows: any[]; // Neo4j records as JSON objects
+  count: number;
+}
+
+// Citation used within RAGResponse
+export interface Citation {
+  chunk_id: string;
+  score: number;
+}
+
+// Request to /rag/answer
+export interface RAGRequest {
+  question: string;
+  k?: number;
+}
+
+// Response from /rag/answer
+export interface RAGResponse {
+  answer: string;
+  citations: Citation[];
+  confidence: number;
+}

@@ -1,27 +1,65 @@
 import { useState } from "react";
-
-// TODO: import { ExtractResponse } from "../lib/types" once you declare it.
+import { ExtractRequest, ExtractResponse } from "../lib/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function ExtractPage() {
   const [text, setText] = useState("");
-  // TODO: track the result as ExtractResponse | null and an error state.
+  const [result, setResult] = useState<ExtractResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function submit() {
-    // TODO:
-    // 1. POST to `${API_URL}/extract` with JSON body { text }.
-    // 2. Handle 422 (validation) and 503 (backend not ready) distinctly.
-    // 3. Parse the response and put it on state.
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await fetch(`${API_URL}/extract`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text } as ExtractRequest),
+      });
+
+      if (response.status === 422) {
+        setError("Invalid input: Please check your text length.");
+      } else if (response.status === 503) {
+        setError("Service is currently unavailable. Please try again later.");
+      } else if (!response.ok) {
+        setError("An unexpected error occurred.");
+      } else {
+        const data: ExtractResponse = await response.json();
+        setResult(data);
+      }
+    } catch (err) {
+      setError("Failed to connect to the server.");
+    }
   }
 
   return (
     <main>
       <h1>Extract — Named Entity Recognition</h1>
-      <textarea value={text} onChange={(e) => setText(e.target.value)} />
+      <textarea 
+        value={text} 
+        onChange={(e) => setText(e.target.value)} 
+        placeholder="Enter text to extract entities..."
+      />
       <button onClick={submit} disabled={!text}>Extract</button>
-      {/* TODO: render entity spans with `data-testid="entity-span"` so
-                Playwright can find them. */}
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      {result && (
+        <section>
+          <h2>Entities:</h2>
+          {result.entities.map((ent, i) => (
+            <span 
+              key={i} 
+              data-testid="entity-span" 
+              style={{ margin: "5px", padding: "5px", border: "1px solid #ccc" }}
+            >
+              {ent.text} ({ent.label})
+            </span>
+          ))}
+        </section>
+      )}
     </main>
   );
 }
